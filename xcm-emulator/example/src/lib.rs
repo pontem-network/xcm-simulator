@@ -6,7 +6,7 @@ use xcm_emulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain
 decl_test_relay_chain! {
 	pub struct KusamaNet {
 		Runtime = kusama_runtime::Runtime,
-		XcmConfig = kusama_runtime::XcmConfig,
+		XcmConfig = kusama_runtime::xcm_config::XcmConfig,
 		new_ext = kusama_ext(),
 	}
 }
@@ -79,8 +79,8 @@ fn default_parachains_host_configuration(
 	use polkadot_primitives::v1::{MAX_CODE_SIZE, MAX_POV_SIZE};
 
 	polkadot_runtime_parachains::configuration::HostConfiguration {
-		validation_upgrade_frequency: 1u32,
-		validation_upgrade_delay: 1,
+		validation_upgrade_cooldown: 4u32,
+		validation_upgrade_delay: 8,
 		code_retention_period: 1200,
 		max_code_size: MAX_CODE_SIZE,
 		max_pov_size: MAX_POV_SIZE,
@@ -110,6 +110,7 @@ fn default_parachains_host_configuration(
 		needed_approvals: 2,
 		relay_vrf_modulo_samples: 2,
 		zeroth_delay_tranche_width: 0,
+		minimum_validation_upgrade_delay: 5,
 		..Default::default()
 	}
 }
@@ -178,7 +179,7 @@ mod tests {
 
 			assert!(System::events()
 				.iter()
-				.any(|r| matches!(r.event, Event::System(frame_system::Event::Remarked(_, _)))));
+				.any(|r| matches!(r.event, Event::System(frame_system::Event::Remarked { .. }))));
 		});
 	}
 
@@ -187,7 +188,7 @@ mod tests {
 		Network::reset();
 
 		KusamaNet::execute_with(|| {
-			let _ = kusama_runtime::Balances::deposit_creating(&ParaId::from(1).into_account(), 1_000_000_000_000);
+			let _ = kusama_runtime::Balances::deposit_creating(&ParaId::from(1u32).into_account(), 1_000_000_000_000);
 		});
 
 		let remark = kusama_runtime::Call::System(frame_system::Call::<kusama_runtime::Runtime>::remark_with_event {
@@ -209,7 +210,7 @@ mod tests {
 			use kusama_runtime::{Event, System};
 			assert!(System::events()
 				.iter()
-				.any(|r| matches!(r.event, Event::System(frame_system::Event::Remarked(_, _)))));
+				.any(|r| matches!(r.event, Event::System(frame_system::Event::Remarked { .. }))));
 		});
 	}
 
@@ -238,7 +239,7 @@ mod tests {
 
 			assert!(System::events()
 				.iter()
-				.any(|r| matches!(r.event, Event::System(frame_system::Event::Remarked(_, _)))));
+				.any(|r| matches!(r.event, Event::System(frame_system::Event::Remarked { .. }))));
 		});
 	}
 
